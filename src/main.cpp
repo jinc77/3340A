@@ -32,6 +32,7 @@ pros::ADIDigitalOut Flag ({FLAG_PORT});
 
 bool flagState = false;
 bool clampState = false;
+bool intakeState = false;
 
 void ToggleClamp() {
     clampState = !clampState;          // Toggle the state
@@ -44,8 +45,27 @@ void ToggleFlag() {
     pros::delay(200);                // Delay for debouncing
 }
 
+void ToggleIntake() {
+    intakeState = !intakeState;
+    if (intakeState) {
+        pros::screen::print(TEXT_SMALL, 3, "Ssetting to 200");
+        Intake.move_velocity(200);
+    }
+    else {
+        pros::screen::print(TEXT_SMALL, 3, "Ssetting to 0");
+        Intake.move_velocity(0);
+    }
+}
 
-
+void BuzzingTask() {
+    pros::Controller Controller1(pros::E_CONTROLLER_MASTER);
+    while (true) {
+        if (intakeState) {
+            Controller1.rumble(".");  // Short rumble to simulate continuous buzzing
+        }
+        pros::delay(15); // Delay to control buzzing frequency
+    }
+}
 
 /**
  * A callback function for LLEMU's center button.
@@ -73,6 +93,7 @@ void initialize() {
 	pros::lcd::initialize();
 	pros::lcd::set_text(1, "Hello PROS User!");
 	pros::lcd::register_btn1_cb(on_center_button);
+    pros::Task buzzingTask(BuzzingTask);
 	
 }
 
@@ -125,16 +146,18 @@ void autonomous() {
 void opcontrol() {
     pros::Controller Controller1(pros::E_CONTROLLER_MASTER);
     ToggleFlag();
-    while (true) {
+    while(true) {
+        
+  
         // Calculate drivetrain motor velocities
         // Left joystick (up/down) for forward/backward (Axis3)
         // Right joystick (left/right) for turning (Axis1)
-        int turn = Controller1.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y); //  Turning
-        int forward = Controller1.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X);  // Forward/backward
+        int turn = Controller1.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X); //  Turning
+        int forward = Controller1.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);  // Forward/backward
 
         // Compute motor speeds for arcade drive
-        int drivetrainLeftSideSpeed = (forward + turn); // Left motor speed
-        int drivetrainRightSideSpeed = (forward - turn);  // Right motor speed
+        int drivetrainLeftSideSpeed = -(forward + turn); // Left motor speed
+        int drivetrainRightSideSpeed = -(forward - turn);  // Right motor speed
 
         // Deadband logic to prevent small joystick movements from moving the robot
         const int deadband = 25; // Threshold for joystick input
@@ -146,7 +169,7 @@ void opcontrol() {
         }
 
         // Set motor velocities
-        LeftDriveSmart.move_velocity(-(drivetrainLeftSideSpeed * 2));  // Adjust scaling as needed
+        LeftDriveSmart.move_velocity((drivetrainLeftSideSpeed * 2));  // Adjust scaling as needed
         RightDriveSmart.move_velocity((drivetrainRightSideSpeed * 2));
 
         // Control Clamp and Flag using buttons
@@ -156,15 +179,21 @@ void opcontrol() {
         if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)) {
             ToggleFlag();
         }
-
+        pros::screen::print(TEXT_SMALL, 3, "State: %3d", intakeState);
         // Control Intake using shoulder buttons (L1/L2)
-        if (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-            Intake.move_velocity(200);  // Spin intake forward
-        } else if (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-            Intake.move_velocity(-200); // Spin intake backward
-        } else {
-            Intake.move_velocity(0);    // Stop intake
-        }
+        if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)) {
+            ToggleIntake();
+        }  
+        if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)) {
+            while (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_L2)){
+                Intake.move_velocity(-200);
+            }
+            intakeState = !intakeState;
+            Intake.move_velocity(0);
+        }  
+   
+
+        
         if (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
             HighStakes.move_velocity(-100);  // Spin intake forward
         } else if (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
@@ -176,4 +205,4 @@ void opcontrol() {
         // Delay to prevent CPU overload
         pros::delay(20);
     }
-}
+    }
