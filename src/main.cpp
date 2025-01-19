@@ -8,7 +8,7 @@
 #define RIGHT_MOTOR_B_PORT 11
 #define RIGHT_MOTOR_C_PORT 12
 
-#define INERTIAL_PORT 21 //not correct
+#define INERTIAL_PORT 15
 
 #define INTAKE_PORT 10
 
