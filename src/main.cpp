@@ -28,6 +28,7 @@ pros::Imu DrivetrainInertial(INERTIAL_PORT);
 pros::MotorGroup smartdrive ({LEFT_MOTOR_A_PORT, LEFT_MOTOR_B_PORT, -LEFT_MOTOR_C_PORT, -RIGHT_MOTOR_A_PORT, RIGHT_MOTOR_B_PORT, -RIGHT_MOTOR_C_PORT, INERTIAL_PORT});
 pros::ADIDigitalOut Clamp ({CLAMP_PORT});
 pros::ADIDigitalOut Flag ({FLAG_PORT});
+pros::IMU Inertial({INERTIAL_PORT});
 
 
 bool flagState = false;
@@ -67,6 +68,8 @@ void BuzzingTask() {
     }
 }
 
+
+
 /**
  * A callback function for LLEMU's center button.
  *
@@ -94,8 +97,8 @@ void initialize() {
 	pros::lcd::set_text(1, "Hello PROS User!");
 	pros::lcd::register_btn1_cb(on_center_button);
     pros::Task buzzingTask(BuzzingTask);
-	
 }
+
 
 /**
  * Runs while the robot is in the disabled state of Field Management System or
@@ -126,8 +129,41 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
+enum Direction {clockwise, anticlockwise};
+void TurnDegrees(pros::IMU& inertial, Direction dir, int degrees) {
+    inertial.reset();
+    pros::delay(2000); // Allow time for reset
+
+    int initial = inertial.get_heading();
+    int targetdeg;
+
+    if (dir == clockwise) {
+        targetdeg = (initial + degrees) % 360;
+        LeftDriveSmart.move_velocity(-20);
+        RightDriveSmart.move_velocity(20);
+
+        while (inertial.get_heading() < targetdeg) {
+            pros::delay(5);
+        }
+    } else { // ANTI CLOCKWISE DOESN'T WORK
+        targetdeg = (initial - degrees + 360) % 360;
+        RightDriveSmart.move_velocity(-20);
+        LeftDriveSmart.move_velocity(20);
+
+        while (inertial.get_heading() > targetdeg) {
+            pros::delay(5);
+        }
+    }
+
+    // Stop the motors
+    LeftDriveSmart.move_velocity(0);
+    RightDriveSmart.move_velocity(0);
+}
+
 void autonomous() {
+    
     ToggleFlag();
+    TurnDegrees(Inertial, Direction::clockwise, 30);
 }
 
 /**
