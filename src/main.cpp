@@ -131,10 +131,7 @@ void competition_initialize() {}
  */
 enum Direction {clockwise, counterclockwise};
 void TurnDegrees(pros::IMU& inertial, Direction dir, int degrees) {
-    inertial.reset();
-    pros::delay(2000); // Allow time for reset
-
-    int initial = inertial.get_heading();
+    int initial = Inertial.get_heading();
     int targetdeg;
 
     if (dir == clockwise) {
@@ -162,7 +159,9 @@ void TurnDegrees(pros::IMU& inertial, Direction dir, int degrees) {
 }
 
 void autonomous() {
-    
+    Inertial.reset();
+    pros::delay(2000); // Allow time for reset
+
     ToggleFlag();
     TurnDegrees(Inertial, Direction::counterclockwise, 30);
 }
@@ -184,8 +183,6 @@ void opcontrol() {
     pros::Controller Controller1(pros::E_CONTROLLER_MASTER);
     ToggleFlag();
     while(true) {
-        
-  
         // Calculate drivetrain motor velocities
         // Left joystick (up/down) for forward/backward (Axis3)
         // Right joystick (left/right) for turning (Axis1)
