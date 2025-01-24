@@ -129,7 +129,7 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-enum Direction {clockwise, anticlockwise};
+enum Direction {clockwise, counterclockwise};
 void TurnDegrees(pros::IMU& inertial, Direction dir, int degrees) {
     inertial.reset();
     pros::delay(2000); // Allow time for reset
@@ -145,12 +145,13 @@ void TurnDegrees(pros::IMU& inertial, Direction dir, int degrees) {
         while (inertial.get_heading() < targetdeg) {
             pros::delay(5);
         }
-    } else { // ANTI CLOCKWISE DOESN'T WORK
-        targetdeg = (initial - degrees + 360) % 360;
+    } else if (dir==counterclockwise) { 
+        targetdeg = 360-degrees;
+        
         RightDriveSmart.move_velocity(-20);
         LeftDriveSmart.move_velocity(20);
 
-        while (inertial.get_heading() > targetdeg) {
+        while (inertial.get_heading() > targetdeg || inertial.get_heading() < 5) {
             pros::delay(5);
         }
     }
@@ -163,7 +164,7 @@ void TurnDegrees(pros::IMU& inertial, Direction dir, int degrees) {
 void autonomous() {
     
     ToggleFlag();
-    TurnDegrees(Inertial, Direction::clockwise, 30);
+    TurnDegrees(Inertial, Direction::counterclockwise, 30);
 }
 
 /**
