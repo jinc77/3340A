@@ -31,7 +31,7 @@ pros::ADIDigitalOut Flag ({FLAG_PORT});
 pros::IMU Inertial({INERTIAL_PORT});
 
 
-bool flagState = false;
+bool flagState = true;
 bool clampState = false;
 bool intakeState = false;
 
@@ -159,11 +159,46 @@ void TurnDegrees(pros::IMU& inertial, Direction dir, int degrees) {
 }
 
 void autonomous() {
+    //rotate high stakes automatically
+    HighStakes.move_relative(-200, 50);
+
+    ToggleFlag();
     Inertial.reset();
     pros::delay(2000); // Allow time for reset
 
-    ToggleFlag();
-    TurnDegrees(Inertial, Direction::counterclockwise, 30);
+    
+    //turn to correct angle
+    TurnDegrees(Inertial, clockwise, 15);
+    
+    //left drivetrain and right drivetrain move velocity -200, driving backward
+    LeftDriveSmart.move_velocity(23);
+    RightDriveSmart.move_velocity(23);
+    pros::delay(5000);
+    LeftDriveSmart.move_velocity(0);
+    RightDriveSmart.move_velocity(0);
+
+    ToggleClamp();
+    ToggleIntake();
+
+    TurnDegrees(Inertial, Direction::clockwise, 70);
+
+    LeftDriveSmart.move_velocity(-50);
+    RightDriveSmart.move_velocity(-50);
+    pros::delay(1500);
+    LeftDriveSmart.move_velocity(0);
+    RightDriveSmart.move_velocity(0);
+
+    TurnDegrees(Inertial, Direction::clockwise, 120);
+
+    LeftDriveSmart.move_velocity(-50);
+    RightDriveSmart.move_velocity(-50);
+
+    ToggleIntake();
+    //toggleclamp and then toggle intake
+    //turn degrees, clockwise around 90
+    //left drivetrain and right drivetrain move velocity 50, driving forward
+    //turn degrees, clockwise around 150
+    //left drivetrain and right drivetrain move velocity 100, driving forward to touch ladder
 }
 
 /**
@@ -181,7 +216,7 @@ void autonomous() {
  */
 void opcontrol() {
     pros::Controller Controller1(pros::E_CONTROLLER_MASTER);
-    ToggleFlag();
+
     while(true) {
         // Calculate drivetrain motor velocities
         // Left joystick (up/down) for forward/backward (Axis3)
